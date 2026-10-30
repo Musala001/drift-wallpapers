@@ -8,10 +8,13 @@ import com.driftwalls.app.data.local.RotationHistoryItem
 import com.driftwalls.app.data.local.RotationPickDao
 import com.driftwalls.app.data.rotation.RotationEngine
 import com.driftwalls.app.data.rotation.RotationResult
+import com.driftwalls.app.data.rotation.RotationScheduler
 import com.driftwalls.app.data.rotation.RotationSettings
 import com.driftwalls.app.data.rotation.RotationSettingsStore
+import com.driftwalls.app.data.rotation.networkNeed
 import com.driftwalls.app.ui.components.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,7 +22,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 sealed interface RotateNowState {
     data object Idle : RotateNowState
@@ -31,6 +33,7 @@ sealed interface RotateNowState {
 class RotationViewModel @Inject constructor(
     private val settingsStore: RotationSettingsStore,
     private val engine: RotationEngine,
+    private val scheduler: RotationScheduler,
     favoriteDao: FavoriteDao,
     pickDao: RotationPickDao,
     historyDao: RotationHistoryDao,
@@ -48,8 +51,18 @@ class RotationViewModel @Inject constructor(
     private val _rotateNow = MutableStateFlow<RotateNowState>(RotateNowState.Idle)
     val rotateNow: StateFlow<RotateNowState> = _rotateNow.asStateFlow()
 
+    val nextRunMillis: StateFlow<Long?> =
+        scheduler.nextRunMillis().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun update(transform: (RotationSettings) -> RotationSettings) {
-        viewModelScope.launch { settingsStore.update(transform) }
+        viewModelScope.launch {
+            val before = settingsStore.current()
+            val after = settingsStore.update(transform)
+            // Only touch WorkManager when something it depends on changed.
+            if (after.enabled != before.enabled || after.interval != before.interval || after.networkNeed() != before.networkNeed()) {
+                scheduler.sync(after)
+            }
+        }
     }
 
     fun next() {
