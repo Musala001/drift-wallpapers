@@ -41,3 +41,21 @@ interface FavoriteDao {
     @Query("DELETE FROM favorites WHERE wallpaperId = :id")
     suspend fun remove(id: String)
 }
+
+@Dao
+interface RotationPickDao {
+    @Query("SELECT wallpaperId FROM rotation_picks ORDER BY addedAt")
+    fun observeIds(): Flow<List<String>>
+
+    @Query("SELECT wallpaperId FROM rotation_picks ORDER BY addedAt")
+    suspend fun ids(): List<String>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM rotation_picks WHERE wallpaperId = :id)")
+    fun observeIsPicked(id: String): Flow<Boolean>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun add(pick: RotationPickEntity)
+
+    @Query("DELETE FROM rotation_picks WHERE wallpaperId = :id")
+    suspend fun remove(id: String)
+}

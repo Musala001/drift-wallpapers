@@ -5,6 +5,8 @@ import com.driftwalls.app.data.local.ArtworkEntity
 import com.driftwalls.app.data.local.FavoriteDao
 import com.driftwalls.app.data.local.FavoriteEntity
 import com.driftwalls.app.data.local.MetRejectedEntity
+import com.driftwalls.app.data.local.RotationPickDao
+import com.driftwalls.app.data.local.RotationPickEntity
 import com.driftwalls.app.domain.model.Artwork
 import com.driftwalls.app.domain.model.Museum
 import kotlinx.coroutines.flow.Flow
@@ -69,5 +71,21 @@ class FakeFavoriteDao(private val artworkDao: FakeArtworkDao) : FavoriteDao {
 
     override suspend fun remove(id: String) {
         favorites.value = favorites.value.filterNot { it.wallpaperId == id }
+    }
+}
+
+class FakeRotationPickDao : RotationPickDao {
+    private val picks = MutableStateFlow<List<RotationPickEntity>>(emptyList())
+
+    override fun observeIds() = picks.map { list -> list.map { it.wallpaperId } }
+    override suspend fun ids() = picks.value.map { it.wallpaperId }
+    override fun observeIsPicked(id: String) = picks.map { list -> list.any { it.wallpaperId == id } }
+
+    override suspend fun add(pick: RotationPickEntity) {
+        if (picks.value.none { it.wallpaperId == pick.wallpaperId }) picks.value += pick
+    }
+
+    override suspend fun remove(id: String) {
+        picks.value = picks.value.filterNot { it.wallpaperId == id }
     }
 }

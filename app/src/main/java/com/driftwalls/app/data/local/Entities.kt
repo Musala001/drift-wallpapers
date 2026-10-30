@@ -36,6 +36,13 @@ data class FavoriteEntity(
     val addedAt: Long,
 )
 
+/** Wallpapers the user added to their own rotation list from the detail screen. */
+@Entity(tableName = "rotation_picks")
+data class RotationPickEntity(
+    @PrimaryKey val wallpaperId: String,
+    val addedAt: Long,
+)
+
 fun ArtworkEntity.toDomain() = Artwork(
     museum = museum,
     sourceId = sourceId,

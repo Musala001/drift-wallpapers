@@ -6,6 +6,7 @@ import com.driftwalls.app.BuildConfig
 import com.driftwalls.app.data.local.ArtworkDao
 import com.driftwalls.app.data.local.DriftDatabase
 import com.driftwalls.app.data.local.FavoriteDao
+import com.driftwalls.app.data.local.RotationPickDao
 import com.driftwalls.app.data.remote.ArtSource
 import com.driftwalls.app.data.remote.aic.AicApi
 import com.driftwalls.app.data.remote.aic.AicArtSource
@@ -103,4 +104,7 @@ object DatabaseModule {
 
     @Provides
     fun favoriteDao(db: DriftDatabase): FavoriteDao = db.favoriteDao()
+
+    @Provides
+    fun rotationPickDao(db: DriftDatabase): RotationPickDao = db.rotationPickDao()
 }

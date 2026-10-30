@@ -3,6 +3,8 @@ package com.driftwalls.app.data.repository
 import com.driftwalls.app.data.local.ArtworkDao
 import com.driftwalls.app.data.local.FavoriteDao
 import com.driftwalls.app.data.local.FavoriteEntity
+import com.driftwalls.app.data.local.RotationPickDao
+import com.driftwalls.app.data.local.RotationPickEntity
 import com.driftwalls.app.data.local.toDomain
 import com.driftwalls.app.data.local.toEntity
 import com.driftwalls.app.data.remote.ArtSource
@@ -33,6 +35,7 @@ class ArtworkRepository @Inject constructor(
     private val sources: List<@JvmSuppressWildcards ArtSource>,
     private val artworkDao: ArtworkDao,
     private val favoriteDao: FavoriteDao,
+    private val pickDao: RotationPickDao,
 ) {
     /** [page] is 1-based. Throws only when every source failed. */
     suspend fun search(query: SearchQuery, page: Int, pageSize: Int): SearchPage = coroutineScope {
@@ -77,6 +80,12 @@ class ArtworkRepository @Inject constructor(
 
     suspend fun setFavorite(id: String, favorite: Boolean) {
         if (favorite) favoriteDao.add(FavoriteEntity(id, System.currentTimeMillis())) else favoriteDao.remove(id)
+    }
+
+    fun isInRotation(id: String): Flow<Boolean> = pickDao.observeIsPicked(id)
+
+    suspend fun setInRotation(id: String, picked: Boolean) {
+        if (picked) pickDao.add(RotationPickEntity(id, System.currentTimeMillis())) else pickDao.remove(id)
     }
 
     companion object {

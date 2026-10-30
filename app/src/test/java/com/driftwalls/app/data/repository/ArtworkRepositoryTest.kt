@@ -7,6 +7,7 @@ import com.driftwalls.app.domain.model.Museum
 import com.driftwalls.app.domain.model.SearchQuery
 import com.driftwalls.app.testing.FakeArtworkDao
 import com.driftwalls.app.testing.FakeFavoriteDao
+import com.driftwalls.app.testing.FakeRotationPickDao
 import com.driftwalls.app.testing.artwork
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -39,7 +40,7 @@ class ArtworkRepositoryTest {
     private val dao = FakeArtworkDao()
     private val aic = FakeSource(Museum.AIC)
     private val met = FakeSource(Museum.MET, byId = mapOf("7" to artwork(Museum.MET, "7")))
-    private val repo = ArtworkRepository(listOf(aic, met), dao, FakeFavoriteDao(dao))
+    private val repo = ArtworkRepository(listOf(aic, met), dao, FakeFavoriteDao(dao), FakeRotationPickDao())
     private val query = SearchQuery.Text("x")
 
     @Test

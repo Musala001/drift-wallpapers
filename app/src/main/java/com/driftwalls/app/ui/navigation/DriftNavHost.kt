@@ -1,5 +1,7 @@
 package com.driftwalls.app.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -22,8 +24,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.driftwalls.app.ui.about.AboutScreen
+import com.driftwalls.app.ui.components.ComingSoon
 import com.driftwalls.app.ui.detail.DetailScreen
 import com.driftwalls.app.ui.favorites.FavoritesScreen
 import com.driftwalls.app.ui.generator.GeneratorScreen
@@ -48,6 +50,8 @@ fun DriftNavHost() {
     val showBar = topLevels.any { top -> destination?.hasRoute(top.routeClass) == true }
 
     Scaffold(
+        // Each screen handles its own insets; this Scaffold only reserves room for the bottom bar.
+        contentWindowInsets = WindowInsets(0),
         bottomBar = {
             if (showBar) {
                 NavigationBar {
@@ -74,12 +78,15 @@ fun DriftNavHost() {
         NavHost(
             navController = navController,
             startDestination = BrowseRoute,
-            modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
             composable<BrowseRoute> {
                 HomeScreen(
                     onOpenWallpaper = { navController.navigate(DetailRoute(it)) },
                     onOpenAbout = { navController.navigate(AboutRoute) },
+                    generatedContent = { modifier ->
+                        ComingSoon("Generated", "Gradients and patterns arrive with the generator.", modifier)
+                    },
                 )
             }
             composable<GeneratorRoute> { GeneratorScreen() }
@@ -88,12 +95,7 @@ fun DriftNavHost() {
             }
             composable<RotationRoute> { RotationScreen() }
             composable<AboutRoute> { AboutScreen(onBack = navController::popBackStack) }
-            composable<DetailRoute> { entry ->
-                DetailScreen(
-                    wallpaperId = entry.toRoute<DetailRoute>().wallpaperId,
-                    onBack = navController::popBackStack,
-                )
-            }
+            composable<DetailRoute> { DetailScreen(onBack = navController::popBackStack) }
         }
     }
 }
