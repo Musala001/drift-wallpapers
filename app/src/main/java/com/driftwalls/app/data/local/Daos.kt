@@ -35,6 +35,12 @@ interface FavoriteDao {
     @Query("SELECT EXISTS(SELECT 1 FROM favorites WHERE wallpaperId = :id)")
     fun observeIsFavorite(id: String): Flow<Boolean>
 
+    @Query("SELECT wallpaperId FROM favorites ORDER BY addedAt")
+    suspend fun ids(): List<String>
+
+    @Query("SELECT COUNT(*) FROM favorites")
+    fun observeCount(): Flow<Int>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun add(favorite: FavoriteEntity)
 
@@ -50,6 +56,9 @@ interface RotationPickDao {
     @Query("SELECT wallpaperId FROM rotation_picks ORDER BY addedAt")
     suspend fun ids(): List<String>
 
+    @Query("SELECT COUNT(*) FROM rotation_picks")
+    fun observeCount(): Flow<Int>
+
     @Query("SELECT EXISTS(SELECT 1 FROM rotation_picks WHERE wallpaperId = :id)")
     fun observeIsPicked(id: String): Flow<Boolean>
 
@@ -58,4 +67,27 @@ interface RotationPickDao {
 
     @Query("DELETE FROM rotation_picks WHERE wallpaperId = :id")
     suspend fun remove(id: String)
+}
+
+@Dao
+interface RotationHistoryDao {
+    @Insert
+    suspend fun insert(entry: RotationHistoryEntity)
+
+    /** Newest first. */
+    @Query("SELECT wallpaperId FROM rotation_history ORDER BY appliedAt DESC, id DESC LIMIT :limit")
+    suspend fun recentIds(limit: Int): List<String>
+
+    @Query(
+        """
+        SELECT h.wallpaperId, h.appliedAt, a.title, a.thumbnailUrl
+        FROM rotation_history h LEFT JOIN artworks a ON a.id = h.wallpaperId
+        ORDER BY h.appliedAt DESC, h.id DESC LIMIT :limit
+        """,
+    )
+    fun observeRecent(limit: Int): Flow<List<RotationHistoryItem>>
+
+    /** Keeps the newest [keep] rows. */
+    @Query("DELETE FROM rotation_history WHERE id NOT IN (SELECT id FROM rotation_history ORDER BY appliedAt DESC, id DESC LIMIT :keep)")
+    suspend fun prune(keep: Int)
 }

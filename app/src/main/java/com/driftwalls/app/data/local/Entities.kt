@@ -1,6 +1,7 @@
 package com.driftwalls.app.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.driftwalls.app.domain.model.Artwork
 import com.driftwalls.app.domain.model.Museum
@@ -41,6 +42,22 @@ data class FavoriteEntity(
 data class RotationPickEntity(
     @PrimaryKey val wallpaperId: String,
     val addedAt: Long,
+)
+
+/** One wallpaper change made by rotation, newest kept for "recently shown" and repeat avoidance. */
+@Entity(tableName = "rotation_history", indices = [Index("appliedAt")])
+data class RotationHistoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val wallpaperId: String,
+    val appliedAt: Long,
+)
+
+/** A history row with the artwork's title and thumbnail when it is a cached museum artwork. */
+data class RotationHistoryItem(
+    val wallpaperId: String,
+    val appliedAt: Long,
+    val title: String?,
+    val thumbnailUrl: String?,
 )
 
 fun ArtworkEntity.toDomain() = Artwork(

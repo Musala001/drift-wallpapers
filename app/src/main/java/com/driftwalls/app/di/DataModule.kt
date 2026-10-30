@@ -1,11 +1,16 @@
 package com.driftwalls.app.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.driftwalls.app.BuildConfig
 import com.driftwalls.app.data.local.ArtworkDao
 import com.driftwalls.app.data.local.DriftDatabase
 import com.driftwalls.app.data.local.FavoriteDao
+import com.driftwalls.app.data.local.RotationHistoryDao
 import com.driftwalls.app.data.local.RotationPickDao
 import com.driftwalls.app.data.remote.ArtSource
 import com.driftwalls.app.data.remote.aic.AicApi
@@ -107,4 +112,12 @@ object DatabaseModule {
 
     @Provides
     fun rotationPickDao(db: DriftDatabase): RotationPickDao = db.rotationPickDao()
+
+    @Provides
+    fun rotationHistoryDao(db: DriftDatabase): RotationHistoryDao = db.rotationHistoryDao()
+
+    @Provides
+    @Singleton
+    fun settingsDataStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("settings") }
 }

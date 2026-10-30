@@ -64,6 +64,8 @@ class FakeFavoriteDao(private val artworkDao: FakeArtworkDao) : FavoriteDao {
     }
 
     override fun observeIsFavorite(id: String) = favorites.map { list -> list.any { it.wallpaperId == id } }
+    override suspend fun ids() = favorites.value.sortedBy { it.addedAt }.map { it.wallpaperId }
+    override fun observeCount() = favorites.map { it.size }
 
     override suspend fun add(favorite: FavoriteEntity) {
         if (favorites.value.none { it.wallpaperId == favorite.wallpaperId }) favorites.value += favorite
@@ -79,6 +81,7 @@ class FakeRotationPickDao : RotationPickDao {
 
     override fun observeIds() = picks.map { list -> list.map { it.wallpaperId } }
     override suspend fun ids() = picks.value.map { it.wallpaperId }
+    override fun observeCount() = picks.map { it.size }
     override fun observeIsPicked(id: String) = picks.map { list -> list.any { it.wallpaperId == id } }
 
     override suspend fun add(pick: RotationPickEntity) {
