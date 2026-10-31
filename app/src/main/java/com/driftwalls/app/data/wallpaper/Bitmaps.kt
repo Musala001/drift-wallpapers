@@ -8,6 +8,7 @@ import android.graphics.Rect
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowManager
+import androidx.core.graphics.createBitmap
 import com.driftwalls.app.domain.image.ScreenCrop
 
 data class ScreenSize(val width: Int, val height: Int) {
@@ -33,7 +34,7 @@ data class ScreenSize(val width: Int, val height: Int) {
 fun Bitmap.cropToScreen(size: ScreenSize): Bitmap {
     if (width == size.width && height == size.height) return this
     val crop = ScreenCrop.centerCrop(width, height, size.width, size.height)
-    val out = Bitmap.createBitmap(size.width, size.height, Bitmap.Config.ARGB_8888)
+    val out = createBitmap(size.width, size.height)
     Canvas(out).drawBitmap(
         this,
         Rect(crop.left, crop.top, crop.right, crop.bottom),

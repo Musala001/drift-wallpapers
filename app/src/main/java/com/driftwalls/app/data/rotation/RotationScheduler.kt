@@ -6,7 +6,9 @@ import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -14,13 +16,13 @@ import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** What network a scheduled rotation needs before WorkManager runs it. */
 enum class NetworkNeed { NONE, ANY, UNMETERED }
@@ -60,6 +62,18 @@ class RotationScheduler @Inject constructor(@ApplicationContext private val cont
         workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
     }
 
+    /**
+     * Rotates once as soon as possible (launcher shortcut). The user asked for it, so a metered
+     * network is fine; WorkManager makes sure it finishes even after the shortcut's activity closes.
+     */
+    fun rotateOnce(settings: RotationSettings) {
+        val network = if (settings.networkNeed() == NetworkNeed.NONE) NetworkType.NOT_REQUIRED else NetworkType.CONNECTED
+        val request = OneTimeWorkRequestBuilder<RotationWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(network).build())
+            .build()
+        workManager.enqueueUniqueWork(ONCE_WORK_NAME, ExistingWorkPolicy.KEEP, request)
+    }
+
     /** When the next scheduled change may run, or null when rotation is off. */
     fun nextRunMillis(): Flow<Long?> = workManager.getWorkInfosForUniqueWorkFlow(WORK_NAME).map { infos ->
         infos.firstOrNull { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
@@ -69,6 +83,7 @@ class RotationScheduler @Inject constructor(@ApplicationContext private val cont
 
     private companion object {
         const val WORK_NAME = "rotation"
+        const val ONCE_WORK_NAME = "rotation-now"
     }
 }
 

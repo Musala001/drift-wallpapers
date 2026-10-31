@@ -7,6 +7,8 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RadialGradient
 import android.graphics.Shader
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withRotation
 import com.driftwalls.app.domain.generator.GeneratorSpec
 import com.driftwalls.app.domain.generator.Palette
 import com.driftwalls.app.domain.generator.PatternStyle
@@ -19,7 +21,7 @@ import kotlin.random.Random
 /** Draws a [GeneratorSpec]. The same spec gives the same picture at any size. */
 object PatternRenderer {
     fun render(spec: GeneratorSpec, width: Int, height: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(width.coerceAtLeast(1), height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width.coerceAtLeast(1), height.coerceAtLeast(1))
         val canvas = Canvas(bitmap)
         // Geometry uses its own stream so changing the palette rules doesn't reshuffle shapes.
         val random = Random(spec.seed xor GEOMETRY_SALT)
@@ -108,19 +110,18 @@ object PatternRenderer {
     private fun stripes(canvas: Canvas, w: Float, h: Float, colors: List<Int>, random: Random) {
         canvas.drawColor(colors[0])
         val diagonal = hypot(w, h)
-        canvas.save()
-        canvas.rotate(-60f + random.nextFloat() * 120f, w / 2f, h / 2f)
-        var x = -diagonal / 2f + w / 2f
-        val p = paint()
-        var i = 0
-        while (x < w / 2f + diagonal / 2f) {
-            val band = diagonal * (0.03f + random.nextFloat() * 0.09f)
-            p.color = Palette.lerp(colors[i % colors.size], colors[(i + 1) % colors.size], random.nextFloat() * 0.5f)
-            canvas.drawRect(x, h / 2f - diagonal / 2f, x + band, h / 2f + diagonal / 2f, p)
-            x += band
-            i++
+        canvas.withRotation(-60f + random.nextFloat() * 120f, w / 2f, h / 2f) {
+            var x = -diagonal / 2f + w / 2f
+            val p = paint()
+            var i = 0
+            while (x < w / 2f + diagonal / 2f) {
+                val band = diagonal * (0.03f + random.nextFloat() * 0.09f)
+                p.color = Palette.lerp(colors[i % colors.size], colors[(i + 1) % colors.size], random.nextFloat() * 0.5f)
+                drawRect(x, h / 2f - diagonal / 2f, x + band, h / 2f + diagonal / 2f, p)
+                x += band
+                i++
+            }
         }
-        canvas.restore()
     }
 
     private fun dots(canvas: Canvas, w: Float, h: Float, colors: List<Int>, random: Random) {

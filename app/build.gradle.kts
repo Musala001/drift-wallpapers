@@ -16,7 +16,7 @@ android {
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         // Sent as AIC-User-Agent, per the Art Institute of Chicago API usage guidelines.
         buildConfigField(

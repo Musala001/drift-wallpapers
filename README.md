@@ -2,7 +2,14 @@
 
 An Android wallpaper app built around auto-rotation, using only public-domain art and wallpapers generated on the device.
 
-> Work in progress. Built in phases; see [Status](#status).
+## Features
+
+- **Browse** public-domain paintings, prints and drawings from The Met and the Art Institute of Chicago by category or search, with the full credit line on every image.
+- **Set** any image on the home screen, lock screen or both, cropped to your screen.
+- **Rotate** automatically from your favourites, your own rotation list, a museum category or freshly generated designs. Shuffle avoids recent repeats; in-order walks the list. Choose 15 minutes to daily, Wi-Fi only, and it waits while the battery is low.
+- **Live wallpaper** (optional): crossfades between rotated images, pans as you swipe home screens, double-tap for the next one.
+- **Create** gradients, mesh blobs, waves, rings, stripes and halftone dots from colour-harmony palettes. Every design is reproducible from its id, so it can join your rotation list.
+- **Next wallpaper** launcher shortcut (long-press the app icon).
 
 ## Setup
 
@@ -17,6 +24,15 @@ Then:
 ```bash
 ./gradlew assembleDebug        # APK in app/build/outputs/apk/debug/
 ./gradlew testDebugUnitTest    # unit tests
+./gradlew lintDebug            # Android lint
+```
+
+On a machine with little RAM, cap Gradle in `~/.gradle/gradle.properties` (it overrides the project's `-Xmx4g`), for example:
+
+```properties
+org.gradle.jvmargs=-Xmx2g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8
+org.gradle.workers.max=1
+kotlin.compiler.execution.strategy=in-process
 ```
 
 `gradle.properties` sets `drift.githubUser`, which goes into the `AIC-User-Agent` header the Art Institute of Chicago asks API clients to send.
@@ -26,17 +42,31 @@ Then:
 Single `:app` module, MVVM, Hilt for DI.
 
 ```
-domain/      Pure Kotlin: Artwork, Category, credit formatting, portrait ranking
+domain/       Pure Kotlin, unit-tested on the JVM
+  model/      Artwork, Category, credit formatting
+  image/      Portrait ranking, screen center-crop maths
+  rotation/   RotationPlanner: in-order / shuffle-without-recent-repeats
+  generator/  GeneratorSpec (id <-> style, harmony, seed), HSL palettes
 data/
-  remote/    Retrofit APIs, DTOs and public-domain mappers for each museum
-    met/     The Met (v1.1 search + per-object lookups)
-    aic/     Art Institute of Chicago (search via `params` JSON, IIIF image URLs)
-    net/     Rate limiting, AIC header, API response caching, offline fallback
-  local/     Room: artwork cache, Met negative cache, favourites
+  remote/     Retrofit APIs, DTOs and public-domain mappers for each museum
+    met/      The Met (v1.1 search + per-object lookups)
+    aic/      Art Institute of Chicago (search via `params` JSON, IIIF image URLs)
+    net/      Rate limiting, AIC header, API response caching, offline fallback
+  local/      Room: artwork cache, Met negative cache, favourites, rotation list, history
   repository/ Merges museums into one feed; one museum failing doesn't fail the page
-di/          Hilt modules
-ui/          Compose screens (Material 3)
+  rotation/   Settings (DataStore), RotationEngine, WorkManager scheduler and worker
+  wallpaper/  Screen-sized bitmaps, WallpaperManager, live wallpaper hand-off
+  generator/  Canvas renderer for generated designs
+wallpaper/    DriftWallpaperService (live wallpaper)
+di/           Hilt modules
+ui/           Compose screens (Material 3)
 ```
+
+### How rotation works
+
+`RotationEngine.rotateNow()` reads the settings, lists candidate ids for the source (favourites, rotation list, a page of a museum category, or a new generated id), asks `RotationPlanner` for the next one, renders or downloads it at screen size and applies it. If Drift's live wallpaper is active, the image goes to the live wallpaper (a file plus a version flow) instead of replacing it with a still image. Each change is written to `rotation_history`, which the planner uses to avoid repeats.
+
+The same engine runs from the Rotation screen's button, the periodic `RotationWorker`, the launcher shortcut (a one-time worker) and the live wallpaper's double-tap.
 
 ## Image sources and licensing
 
@@ -61,4 +91,4 @@ API etiquette: AIC requests carry `AIC-User-Agent` and are limited to 1/s (their
 - [x] 5. Scheduled rotation (WorkManager)
 - [x] 6. Live wallpaper
 - [x] 7. Generator
-- [ ] 8. Polish
+- [x] 8. Polish
