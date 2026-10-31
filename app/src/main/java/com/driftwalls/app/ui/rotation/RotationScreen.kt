@@ -1,5 +1,10 @@
 package com.driftwalls.app.ui.rotation
 
+import android.app.WallpaperManager
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -41,15 +47,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.driftwalls.app.data.local.RotationHistoryItem
@@ -61,6 +71,7 @@ import com.driftwalls.app.domain.model.Category
 import com.driftwalls.app.domain.rotation.RotationOrder
 import com.driftwalls.app.ui.components.LoadingState
 import com.driftwalls.app.ui.components.TILE_ASPECT
+import com.driftwalls.app.wallpaper.DriftWallpaperService
 import java.text.DateFormat
 import java.util.Date
 
@@ -134,6 +145,9 @@ fun RotationScreen(viewModel: RotationViewModel = hiltViewModel()) {
                 }
             }
 
+            SectionTitle("Live wallpaper")
+            LiveWallpaperRow(viewModel::isLiveActive)
+
             SectionTitle("Source")
             SourceRow(RotationSource.FAVORITES, "Favourites", "$favoriteCount wallpapers", s) { viewModel.update { it.copy(source = RotationSource.FAVORITES) } }
             SourceRow(RotationSource.PICKS, "My rotation", "$pickCount wallpapers you added", s) { viewModel.update { it.copy(source = RotationSource.PICKS) } }
@@ -202,6 +216,46 @@ internal fun SwitchRow(title: String, detail: String, checked: Boolean, onChange
         Spacer(Modifier.width(16.dp))
         // The row handles the toggle so the whole line is one touch target.
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Composable
+private fun LiveWallpaperRow(isActive: () -> Boolean) {
+    val context = LocalContext.current
+    var active by remember { mutableStateOf(isActive()) }
+    // The user returns from the system picker; check again.
+    LifecycleResumeEffect(Unit) {
+        active = isActive()
+        onPauseOrDispose { }
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(if (active) "Live wallpaper is on" else "Use the live wallpaper", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                "Crossfades between wallpapers and pans as you swipe home screens. Double-tap it for the next one.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(16.dp))
+        OutlinedButton(onClick = { openLiveWallpaperPicker(context) }) { Text(if (active) "Change" else "Set up") }
+    }
+}
+
+private fun openLiveWallpaperPicker(context: Context) {
+    val preview = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER)
+        .putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT, ComponentName(context, DriftWallpaperService::class.java))
+    try {
+        context.startActivity(preview)
+    } catch (_: ActivityNotFoundException) {
+        // Some launchers only offer the generic chooser.
+        try {
+            context.startActivity(Intent(WallpaperManager.ACTION_LIVE_WALLPAPER_CHOOSER))
+        } catch (_: ActivityNotFoundException) {
+        }
     }
 }
 

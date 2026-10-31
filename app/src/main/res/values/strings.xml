@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Drift</string>
+    <string name="live_wallpaper_name">Drift</string>
+    <string name="live_wallpaper_description">Your Drift rotation with smooth crossfades and parallax. Double-tap for the next wallpaper.</string>
 </resources>

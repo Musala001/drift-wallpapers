@@ -6,17 +6,19 @@ import com.driftwalls.app.data.local.RotationHistoryDao
 import com.driftwalls.app.data.local.RotationHistoryEntity
 import com.driftwalls.app.data.local.RotationPickDao
 import com.driftwalls.app.data.repository.ArtworkRepository
+import com.driftwalls.app.data.wallpaper.LiveWallpaperStore
 import com.driftwalls.app.data.wallpaper.WallpaperApplier
+import com.driftwalls.app.data.wallpaper.WallpaperTarget
 import com.driftwalls.app.domain.model.SearchQuery
 import com.driftwalls.app.domain.rotation.RotationOrder
 import com.driftwalls.app.domain.rotation.RotationPlanner
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 sealed interface RotationResult {
     data class Applied(val wallpaperId: String) : RotationResult
@@ -34,13 +36,21 @@ class RotationEngine @Inject constructor(
     private val pickDao: RotationPickDao,
     private val historyDao: RotationHistoryDao,
     private val applier: WallpaperApplier,
+    private val live: LiveWallpaperStore,
 ) {
     // A manual "next" and a scheduled run must not apply two wallpapers at once.
     private val mutex = Mutex()
 
-    /** Throws [IOException] when the image or the candidate list couldn't be downloaded. */
-    suspend fun rotateNow(): RotationResult = mutex.withLock {
+    /**
+     * Throws [IOException] when the image or the candidate list couldn't be downloaded.
+     *
+     * @param forceLive send the image to the live wallpaper even if the system doesn't report it
+     *   as active yet (it calls this right after being chosen). Never falls back to replacing it.
+     */
+    suspend fun rotateNow(forceLive: Boolean = false): RotationResult = mutex.withLock {
         val settings = settingsStore.current()
+        // A lock-only rotation still sets a still image on the lock screen beside the live wallpaper.
+        val toLive = forceLive || (live.isActive() && settings.target != WallpaperTarget.LOCK)
         val history = historyDao.recentIds(HISTORY_LOOKBACK)
         val candidates = candidates(settings).toMutableList()
         if (candidates.isEmpty()) return RotationResult.Skipped(emptyReason(settings.source))
@@ -50,9 +60,9 @@ class RotationEngine @Inject constructor(
         repeat(MAX_ATTEMPTS) {
             val id = RotationPlanner.next(candidates, history, settings.order) ?: return@repeat
             try {
-                val bitmap = load(id)
+                val bitmap = load(id, if (toLive) LiveWallpaperStore.PARALLAX_WIDTH else 1f)
                 if (bitmap != null) {
-                    applier.apply(bitmap, settings.target)
+                    if (toLive) live.publish(bitmap) else applier.apply(bitmap, settings.target)
                     historyDao.insert(RotationHistoryEntity(wallpaperId = id, appliedAt = System.currentTimeMillis()))
                     historyDao.prune(HISTORY_KEEP)
                     return RotationResult.Applied(id)
@@ -78,9 +88,9 @@ class RotationEngine @Inject constructor(
         }
     }
 
-    private suspend fun load(id: String): Bitmap? {
+    private suspend fun load(id: String, widthFactor: Float): Bitmap? {
         val artwork = repository.artwork(id) ?: return null
-        return applier.loadScreenBitmap(artwork.imageUrl)
+        return applier.loadScreenBitmap(artwork.imageUrl, widthFactor)
     }
 
     private fun emptyReason(source: RotationSource) = when (source) {

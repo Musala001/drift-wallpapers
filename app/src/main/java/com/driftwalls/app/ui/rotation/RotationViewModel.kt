@@ -12,6 +12,7 @@ import com.driftwalls.app.data.rotation.RotationScheduler
 import com.driftwalls.app.data.rotation.RotationSettings
 import com.driftwalls.app.data.rotation.RotationSettingsStore
 import com.driftwalls.app.data.rotation.networkNeed
+import com.driftwalls.app.data.wallpaper.LiveWallpaperStore
 import com.driftwalls.app.ui.components.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -34,6 +35,7 @@ class RotationViewModel @Inject constructor(
     private val settingsStore: RotationSettingsStore,
     private val engine: RotationEngine,
     private val scheduler: RotationScheduler,
+    private val liveStore: LiveWallpaperStore,
     favoriteDao: FavoriteDao,
     pickDao: RotationPickDao,
     historyDao: RotationHistoryDao,
@@ -81,6 +83,8 @@ class RotationViewModel @Inject constructor(
             }
         }
     }
+
+    fun isLiveActive(): Boolean = liveStore.isActive()
 
     fun messageShown() {
         _rotateNow.value = RotateNowState.Idle

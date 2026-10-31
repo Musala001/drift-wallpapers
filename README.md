@@ -59,6 +59,6 @@ API etiquette: AIC requests carry `AIC-User-Agent` and are limited to 1/s (their
 - [x] 3. Browse and detail
 - [x] 4. Rotation core
 - [x] 5. Scheduled rotation (WorkManager)
-- [ ] 6. Live wallpaper
+- [x] 6. Live wallpaper
 - [ ] 7. Generator
 - [ ] 8. Polish

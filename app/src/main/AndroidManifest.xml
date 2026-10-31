@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
 
+    <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
+
     <application
         android:name=".DriftApp"
         android:allowBackup="true"
@@ -26,6 +28,19 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".wallpaper.DriftWallpaperService"
+            android:exported="true"
+            android:label="@string/live_wallpaper_name"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/drift_wallpaper" />
+        </service>
 
         <!-- DriftApp configures WorkManager itself (Hilt worker factory). -->
         <provider

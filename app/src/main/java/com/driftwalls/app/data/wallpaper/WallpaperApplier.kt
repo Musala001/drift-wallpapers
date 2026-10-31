@@ -28,9 +28,13 @@ class WallpaperApplier @Inject constructor(
     @ApplicationContext private val context: Context,
     private val imageLoader: ImageLoader,
 ) {
-    /** Downloads (or reads from cache) [url] and returns it cropped to the screen. */
-    suspend fun loadScreenBitmap(url: String): Bitmap {
-        val size = ScreenSize.of(context)
+    /**
+     * Downloads (or reads from cache) [url] and returns it cropped to the screen, made [widthFactor]
+     * times wider than the screen when the caller pans it (live wallpaper parallax).
+     */
+    suspend fun loadScreenBitmap(url: String, widthFactor: Float = 1f): Bitmap {
+        val screen = ScreenSize.of(context)
+        val size = ScreenSize((screen.width * widthFactor).toInt(), screen.height)
         val request = ImageRequest.Builder(context)
             .data(url)
             // Decode at least screen-sized; we crop precisely ourselves.
