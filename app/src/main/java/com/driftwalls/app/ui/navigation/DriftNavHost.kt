@@ -25,9 +25,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.driftwalls.app.ui.about.AboutScreen
-import com.driftwalls.app.ui.components.ComingSoon
 import com.driftwalls.app.ui.detail.DetailScreen
 import com.driftwalls.app.ui.favorites.FavoritesScreen
+import com.driftwalls.app.ui.generator.GeneratedGrid
 import com.driftwalls.app.ui.generator.GeneratorScreen
 import com.driftwalls.app.ui.home.HomeScreen
 import com.driftwalls.app.ui.rotation.RotationScreen
@@ -37,7 +37,7 @@ private data class TopLevel(val route: Any, val routeClass: KClass<*>, val label
 
 private val topLevels = listOf(
     TopLevel(BrowseRoute, BrowseRoute::class, "Browse", Icons.Outlined.Collections),
-    TopLevel(GeneratorRoute, GeneratorRoute::class, "Create", Icons.Outlined.AutoAwesome),
+    TopLevel(GeneratorRoute(), GeneratorRoute::class, "Create", Icons.Outlined.AutoAwesome),
     TopLevel(FavoritesRoute, FavoritesRoute::class, "Favourites", Icons.Outlined.FavoriteBorder),
     TopLevel(RotationRoute, RotationRoute::class, "Rotation", Icons.Outlined.Sync),
 )
@@ -85,7 +85,7 @@ fun DriftNavHost() {
                     onOpenWallpaper = { navController.navigate(DetailRoute(it)) },
                     onOpenAbout = { navController.navigate(AboutRoute) },
                     generatedContent = { modifier ->
-                        ComingSoon("Generated", "Gradients and patterns arrive with the generator.", modifier)
+                        GeneratedGrid(onOpen = { navController.navigate(GeneratorRoute(it.id)) }, modifier = modifier)
                     },
                 )
             }

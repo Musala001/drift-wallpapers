@@ -1,7 +1,6 @@
 package com.driftwalls.app.ui.detail
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,14 +23,11 @@ import androidx.compose.material.icons.outlined.LibraryAddCheck
 import androidx.compose.material.icons.outlined.Wallpaper
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -60,6 +56,8 @@ import com.driftwalls.app.data.wallpaper.WallpaperTarget
 import com.driftwalls.app.domain.model.Artwork
 import com.driftwalls.app.ui.components.LoadingState
 import com.driftwalls.app.ui.components.MessageState
+import com.driftwalls.app.ui.components.WallpaperTargetSheet
+import com.driftwalls.app.ui.components.doneMessage
 
 @Composable
 fun DetailScreen(onBack: () -> Unit, viewModel: DetailViewModel = hiltViewModel()) {
@@ -71,7 +69,7 @@ fun DetailScreen(onBack: () -> Unit, viewModel: DetailViewModel = hiltViewModel(
 
     LaunchedEffect(apply) {
         val message = when (val a = apply) {
-            is ApplyState.Done -> "Wallpaper set on ${a.target.label.lowercase()}"
+            is ApplyState.Done -> a.target.doneMessage()
             is ApplyState.Failed -> a.message
             else -> null
         }
@@ -113,7 +111,6 @@ fun DetailScreen(onBack: () -> Unit, viewModel: DetailViewModel = hiltViewModel(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ArtworkDetail(
     artwork: Artwork,
@@ -195,19 +192,5 @@ private fun ArtworkDetail(
         }
     }
 
-    if (chooseTarget) {
-        ModalBottomSheet(onDismissRequest = { chooseTarget = false }) {
-            Text("Set as wallpaper on", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-            WallpaperTarget.entries.forEach { target ->
-                ListItem(
-                    headlineContent = { Text(target.label) },
-                    modifier = Modifier.fillMaxWidth().clickable {
-                        chooseTarget = false
-                        onSet(target)
-                    },
-                )
-            }
-            Spacer(Modifier.navigationBarsPadding().padding(bottom = 16.dp))
-        }
-    }
+    if (chooseTarget) WallpaperTargetSheet(onDismiss = { chooseTarget = false }, onSelect = onSet)
 }

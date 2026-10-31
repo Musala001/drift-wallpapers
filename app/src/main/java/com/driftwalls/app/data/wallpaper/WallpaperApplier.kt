@@ -10,12 +10,14 @@ import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.size.Precision
 import coil3.toBitmap
+import com.driftwalls.app.data.generator.PatternRenderer
+import com.driftwalls.app.domain.generator.GeneratorSpec
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class WallpaperTarget(val label: String, val flags: Int) {
     HOME("Home screen", WallpaperManager.FLAG_SYSTEM),
@@ -45,6 +47,14 @@ class WallpaperApplier @Inject constructor(
         return when (val result = imageLoader.execute(request)) {
             is SuccessResult -> withContext(Dispatchers.Default) { result.image.toBitmap().cropToScreen(size) }
             is ErrorResult -> throw IOException("Couldn't load $url", result.throwable)
+        }
+    }
+
+    /** Draws [spec] at screen size, [widthFactor] times wider for parallax. */
+    suspend fun renderGenerated(spec: GeneratorSpec, widthFactor: Float = 1f): Bitmap {
+        val screen = ScreenSize.of(context)
+        return withContext(Dispatchers.Default) {
+            PatternRenderer.render(spec, (screen.width * widthFactor).toInt(), screen.height)
         }
     }
 

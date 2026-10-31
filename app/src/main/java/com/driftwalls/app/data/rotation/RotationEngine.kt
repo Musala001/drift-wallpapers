@@ -9,6 +9,7 @@ import com.driftwalls.app.data.repository.ArtworkRepository
 import com.driftwalls.app.data.wallpaper.LiveWallpaperStore
 import com.driftwalls.app.data.wallpaper.WallpaperApplier
 import com.driftwalls.app.data.wallpaper.WallpaperTarget
+import com.driftwalls.app.domain.generator.GeneratorSpec
 import com.driftwalls.app.domain.model.SearchQuery
 import com.driftwalls.app.domain.rotation.RotationOrder
 import com.driftwalls.app.domain.rotation.RotationPlanner
@@ -81,7 +82,10 @@ class RotationEngine @Inject constructor(
     private suspend fun candidates(settings: RotationSettings): List<String> = when (settings.source) {
         RotationSource.FAVORITES -> favoriteDao.ids()
         RotationSource.PICKS -> pickDao.ids()
-        RotationSource.CATEGORY -> {
+        RotationSource.CATEGORY -> if (settings.category.isGenerated) {
+            // A fresh design every time; nothing to download.
+            listOf(GeneratorSpec.random().id)
+        } else {
             // Shuffle draws from a few pages so a category doesn't settle on the same 30 images.
             val page = if (settings.order == RotationOrder.SHUFFLE) Random.nextInt(1, CATEGORY_PAGES + 1) else 1
             repository.search(SearchQuery.InCategory(settings.category), page, CATEGORY_PAGE_SIZE).items.map { it.id }
@@ -89,6 +93,7 @@ class RotationEngine @Inject constructor(
     }
 
     private suspend fun load(id: String, widthFactor: Float): Bitmap? {
+        GeneratorSpec.parseId(id)?.let { return applier.renderGenerated(it, widthFactor) }
         val artwork = repository.artwork(id) ?: return null
         return applier.loadScreenBitmap(artwork.imageUrl, widthFactor)
     }

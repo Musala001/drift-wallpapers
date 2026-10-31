@@ -67,10 +67,12 @@ import com.driftwalls.app.data.rotation.RotationInterval
 import com.driftwalls.app.data.rotation.RotationSettings
 import com.driftwalls.app.data.rotation.RotationSource
 import com.driftwalls.app.data.wallpaper.WallpaperTarget
+import com.driftwalls.app.domain.generator.GeneratorSpec
 import com.driftwalls.app.domain.model.Category
 import com.driftwalls.app.domain.rotation.RotationOrder
 import com.driftwalls.app.ui.components.LoadingState
 import com.driftwalls.app.ui.components.TILE_ASPECT
+import com.driftwalls.app.ui.generator.GeneratedImage
 import com.driftwalls.app.wallpaper.DriftWallpaperService
 import java.text.DateFormat
 import java.util.Date
@@ -154,7 +156,7 @@ fun RotationScreen(viewModel: RotationViewModel = hiltViewModel()) {
             SourceRow(RotationSource.CATEGORY, "Category", s.category.displayName, s) { viewModel.update { it.copy(source = RotationSource.CATEGORY) } }
             if (s.source == RotationSource.CATEGORY) {
                 LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(rotationCategories) { category ->
+                    items(Category.entries) { category ->
                         FilterChip(
                             selected = category == s.category,
                             onClick = { viewModel.update { it.copy(category = category) } },
@@ -173,8 +175,6 @@ fun RotationScreen(viewModel: RotationViewModel = hiltViewModel()) {
     }
 }
 
-/** Categories offered as a rotation source. */
-internal val rotationCategories = Category.entries.filterNot { it.isGenerated }
 
 private val WallpaperTarget.shortLabel
     get() = when (this) {
@@ -312,6 +312,11 @@ private fun RecentlyShown(history: List<RotationHistoryItem>) {
 
 @Composable
 private fun HistoryThumbnail(item: RotationHistoryItem, modifier: Modifier) {
+    val generated = remember(item.wallpaperId) { GeneratorSpec.parseId(item.wallpaperId) }
+    if (generated != null) {
+        GeneratedImage(generated, modifier)
+        return
+    }
     AsyncImage(
         model = item.thumbnailUrl,
         contentDescription = item.title,
